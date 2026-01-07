@@ -1,0 +1,609 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>SkySearch — Plane Ticket Booking (Intermediate)</title>
+  <meta name="description" content="A small intermediate plane ticket booking demo (HTML/CSS/JS) with search, filters, and booking flow." />
+  <style>
+    :root{
+      --bg: #0f1724;
+      --card: #0b1220;
+      --muted: #9aa4b2;
+      --accent: #06b6d4;
+      --accent-2: #7c3aed;
+      --glass: rgba(255,255,255,0.04);
+      --success: #10b981;
+      --danger: #ef4444;
+      --radius: 12px;
+      --max-width: 1100px;
+      font-family: Inter, ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial;
+    }
+
+    *{box-sizing:border-box}
+    html,body{height:100%}
+    body{
+      margin:0;
+      background: linear-gradient(180deg,#071022 0%, #071733 60%);
+      color:#e6eef6;
+      -webkit-font-smoothing:antialiased;
+      -moz-osx-font-smoothing:grayscale;
+      padding:32px;
+      display:flex;
+      justify-content:center;
+      align-items:flex-start;
+    }
+
+    /* App container */
+    .app{
+      width:100%;
+      max-width:var(--max-width);
+      display:grid;
+      grid-template-columns: 360px 1fr;
+      gap:28px;
+    }
+
+    header.app-header{
+      grid-column:1 / -1;
+      display:flex;
+      align-items:center;
+      justify-content:space-between;
+      gap:12px;
+      margin-bottom:8px;
+    }
+    .brand{display:flex;align-items:center;gap:12px}
+    .logo{
+      width:46px;height:46px;border-radius:10px;background:linear-gradient(135deg,var(--accent),var(--accent-2));
+      display:grid;place-items:center;font-weight:700;color:#042022;font-size:18px
+    }
+    h1{font-size:1.05rem;margin:0}
+    p.lead{margin:0;color:var(--muted);font-size:0.9rem}
+
+    /* left panel - search */
+    .panel{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:var(--radius);
+      padding:18px;
+      box-shadow: 0 6px 18px rgba(2,6,23,0.6);
+      border:1px solid rgba(255,255,255,0.03);
+    }
+
+    .form-row{display:flex;gap:10px;margin-bottom:10px}
+    .form-row > *{flex:1}
+
+    label{display:block;font-size:0.78rem;color:var(--muted);margin-bottom:6px}
+    input[type=text], select, input[type=date], input[type=number], input[type=email], input[type=password] {
+      width:100%;
+      padding:10px 12px;
+      border-radius:10px;
+      border:1px solid rgba(255,255,255,0.03);
+      background:transparent;color:inherit;font-size:0.95rem;
+    }
+
+    .switch{
+      display:flex;align-items:center;gap:8px;margin-bottom:8px
+    }
+    .btn{
+      display:inline-flex;align-items:center;gap:8px;padding:10px 14px;border-radius:10px;border:0;background:linear-gradient(90deg,var(--accent),var(--accent-2));color:#04111a;font-weight:600;cursor:pointer
+    }
+    .btn.secondary{background:transparent;border:1px solid rgba(255,255,255,0.04);color:var(--muted);font-weight:600}
+
+    /* results area */
+    main.results{
+      overflow:auto;
+      min-height:60vh;
+    }
+
+    .controls{display:flex;gap:10px;align-items:center;justify-content:space-between;margin-bottom:12px}
+    .filters{display:flex;gap:10px;align-items:center}
+    .chip{background:var(--glass);padding:8px 10px;border-radius:999px;font-size:0.85rem;color:var(--muted)}
+
+    .flight-list{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+    .flight-card{
+      background:linear-gradient(180deg, rgba(255,255,255,0.02), rgba(255,255,255,0.01));
+      border-radius:12px;padding:12px;border:1px solid rgba(255,255,255,0.03);display:flex;flex-direction:column;gap:8px
+    }
+    .flight-top{display:flex;justify-content:space-between;align-items:center}
+    .route{font-weight:700;font-size:1rem}
+    .meta{font-size:0.85rem;color:var(--muted)}
+    .price{font-size:1.2rem;font-weight:800;color:var(--accent)}
+
+    .flight-body{display:flex;justify-content:space-between;align-items:center;gap:12px}
+    .flight-left{display:flex;flex-direction:column;gap:6px}
+    .flight-right{display:flex;flex-direction:column;gap:6px;align-items:flex-end}
+
+    .badge{background:rgba(255,255,255,0.02);padding:6px 8px;border-radius:8px;font-size:0.8rem;color:var(--muted)}
+
+    /* modal */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(2,6,23,0.6);display:none;align-items:center;justify-content:center;padding:20px}
+    .modal{background:#031226;padding:18px;border-radius:14px;min-width:320px;color:inherit;border:1px solid rgba(255,255,255,0.04)}
+    .modal.show{display:block}
+    .hidden{display:none}
+
+    .grid-2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+
+    footer{grid-column:1 / -1;margin-top:18px;color:var(--muted);font-size:0.85rem}
+
+    /* login screen */
+    .login-screen{
+      position:fixed;inset:0;display:flex;align-items:center;justify-content:center;background:linear-gradient(180deg,rgba(2,6,23,0.85),rgba(2,6,23,0.95));z-index:9999;
+    }
+    .login-panel{
+      width:380px;background:#071226;border-radius:12px;padding:20px;border:1px solid rgba(255,255,255,0.04);
+      box-shadow: 0 8px 30px rgba(2,6,23,0.7);
+    }
+    .login-panel h2{margin:0 0 8px 0}
+    .login-hint{color:var(--muted);font-size:0.9rem;margin-bottom:12px}
+
+    /* logout btn position */
+    #logout-btn{margin-left:10px}
+
+    /* responsive */
+    @media(max-width:980px){
+      .app{grid-template-columns:1fr;}
+      header.app-header{align-items:flex-start}
+    }
+  </style>
+</head>
+<body>
+  <!-- LOGIN SCREEN: shown until user logs in -->
+  <div id="login-screen" class="login-screen" aria-hidden="false">
+    <div class="login-panel" role="dialog" aria-labelledby="login-title">
+      <h2 id="login-title">Please sign in</h2>
+      <div class="login-hint">Sign in to access the SkySearch demo.</div>
+      <form id="login-form" onsubmit="return false;">
+        <div style="margin-bottom:10px;">
+          <label for="login-email">Email</label>
+          <input id="login-email" type="email" placeholder="you@example.com" required />
+        </div>
+        <div style="margin-bottom:14px;">
+          <label for="login-pass">Password</label>
+          <input id="login-pass" type="password" placeholder="password" required />
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:8px">
+          <button class="btn secondary" id="login-cancel" type="button">Cancel</button>
+          <button class="btn" id="login-btn" type="submit">Sign in</button>
+        </div>
+        <div style="margin-top:12px;color:var(--muted);font-size:0.85rem">
+          Tip: This is client-only authentication for the demo. To reset login, clear site data/localStorage.
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MAIN APP: keep id="app" so your existing selectors still work -->
+  <div class="app" id="app" style="display:none;">
+    <header class="app-header">
+      <div class="brand">
+        <div class="logo">SS</div>
+        <div>
+          <h1>SkySearch</h1>
+          <p class="lead">Find and book flights — intermediate demo</p>
+        </div>
+      </div>
+      <div style="text-align:right">
+        <small class="lead">Client-side demo • No real payments</small>
+        <button id="logout-btn" class="btn secondary hidden" title="Sign out">Logout</button>
+      </div>
+    </header>
+
+    <aside class="panel" aria-labelledby="search-heading">
+      <h2 id="search-heading">Search flights</h2>
+      <form id="search-form" onsubmit="return false;" aria-describedby="search-desc">
+        <p id="search-desc" style="color:var(--muted);font-size:0.85rem">Fill origin, destination and dates. This demo uses mock inventory and client-side booking.</p>
+
+        <div class="form-row">
+          <div>
+            <label for="from">From</label>
+            <input id="from" type="text" placeholder="e.g. New Delhi (DEL)" value="New Delhi" required />
+          </div>
+          <div>
+            <label for="to">To</label>
+            <input id="to" type="text" placeholder="e.g. Mumbai (BOM)" value="Mumbai" required />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="depart">Depart</label>
+            <input id="depart" type="date" required />
+          </div>
+          <div>
+            <label for="return">Return (optional)</label>
+            <input id="return" type="date" />
+          </div>
+        </div>
+
+        <div class="form-row">
+          <div>
+            <label for="passengers">Passengers</label>
+            <input id="passengers" type="number" min="1" max="9" value="1" />
+          </div>
+          <div>
+            <label for="cls">Class</label>
+            <select id="cls">
+              <option>Economy</option>
+              <option>Premium Economy</option>
+              <option>Business</option>
+              <option>First</option>
+            </select>
+          </div>
+        </div>
+
+        <div style="display:flex;gap:10px;margin-top:8px">
+          <button class="btn" id="search-btn">Search</button>
+          <button class="btn secondary" id="swap-btn" title="Swap origin and destination">Swap</button>
+        </div>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.03);margin:14px 0" />
+
+        <div>
+          <label for="budget">Max budget (INR)</label>
+          <input id="budget" type="number" min="0" placeholder="e.g. 20000" />
+        </div>
+
+      </form>
+
+      <div style="margin-top:12px;color:var(--muted);font-size:0.9rem">
+        <strong>Tip:</strong> Try different dates or change class to see varied results.
+      </div>
+    </aside>
+
+    <main class="results panel" aria-live="polite">
+      <div class="controls">
+        <div class="filters">
+          <div class="chip" id="result-count">0 results</div>
+          <div class="chip" id="fastest-filter">Fastest</div>
+          <div class="chip" id="cheapest-filter">Cheapest</div>
+        </div>
+        <div>
+          <label for="sort">Sort</label>
+          <select id="sort">
+            <option value="best">Best</option>
+            <option value="price-asc">Price ↑</option>
+            <option value="price-desc">Price ↓</option>
+            <option value="duration">Duration</option>
+          </select>
+        </div>
+      </div>
+
+      <section class="flight-list" id="flight-list" aria-label="Available flights">
+        <!-- flight cards injected here -->
+      </section>
+
+      <div id="empty" style="color:var(--muted);margin-top:18px">No search yet — enter origin, destination and dates then press Search.</div>
+
+    </main>
+
+    <div class="modal-backdrop" id="modal">
+      <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+        <h3 id="modal-title">Book flight</h3>
+        <div id="modal-body"></div>
+        <div style="display:flex;gap:8px;margin-top:12px;justify-content:flex-end">
+          <button class="btn secondary" id="modal-close">Cancel</button>
+          <button class="btn" id="confirm-book">Confirm & Pay</button>
+        </div>
+      </div>
+    </div>
+
+    <footer>
+      <div>Local demo — no live payments. Save bookings locally and check the console for details.</div>
+    </footer>
+  </div>
+
+  <script>
+    /***** CREDENTIALS (change here if needed) *****/
+    const ADMIN_EMAIL = 'vedant@gmail.com';
+    const ADMIN_PASS = 'Vedant%11';
+
+    // --------- Login UI control ----------
+    const loginScreen = document.getElementById('login-screen');
+    const loginForm = document.getElementById('login-form');
+    const loginEmail = document.getElementById('login-email');
+    const loginPass = document.getElementById('login-pass');
+    const loginBtn = document.getElementById('login-btn');
+    const loginCancel = document.getElementById('login-cancel');
+
+    const appEl = document.getElementById('app');
+    const logoutBtn = document.getElementById('logout-btn');
+
+    function showApp(){
+      loginScreen.style.display = 'none';
+      appEl.style.display = '';
+      logoutBtn.classList.remove('hidden');
+    }
+    function showLogin(){
+      loginScreen.style.display = 'flex';
+      appEl.style.display = 'none';
+      logoutBtn.classList.add('hidden');
+    }
+
+    // if previously logged in, show app
+    document.addEventListener('DOMContentLoaded', ()=>{
+      const logged = localStorage.getItem('skysearch_logged');
+      if(logged === '1'){
+        showApp();
+      } else {
+        showLogin();
+      }
+    });
+
+    // login submit
+    loginForm.addEventListener('submit', (e)=>{
+      e.preventDefault();
+      const mail = (loginEmail.value||'').trim();
+      const pass = (loginPass.value||'').trim();
+      if(mail === ADMIN_EMAIL && pass === ADMIN_PASS){
+        // success
+        localStorage.setItem('skysearch_logged','1');
+        showApp();
+      } else {
+        alert('Invalid email or password.');
+      }
+    });
+
+    // cancel clears inputs
+    loginCancel.addEventListener('click', ()=>{
+      loginEmail.value = '';
+      loginPass.value = '';
+    });
+
+    // logout
+    logoutBtn.addEventListener('click', ()=>{
+      localStorage.removeItem('skysearch_logged');
+      // small delay then show login
+      showLogin();
+      loginEmail.value = '';
+      loginPass.value = '';
+    });
+
+    /***** ORIGINAL APP SCRIPT (kept mostly intact) *****/
+    // -------------------- Mock inventory --------------------
+    const mockFlights = (from, to, depart, cls) => {
+      const carriers = ['Air Horizon', 'IndigoSky', 'SpiceRun', 'VistAir'];
+      const base = new Date(depart).getTime() || Date.now();
+      const flights = [];
+      for(let i=0;i<8;i++){
+        const departTime = new Date(base + (i+1)*3600*1000* (Math.random()*6 + 2));
+        const durationH = Math.floor(Math.random()*5)+1 + (i%3);
+        const stops = Math.random() > 0.7 ? 1 : 0;
+        const priceBase = 3000 + (Math.random()*5000) + (durationH*400) + (stops*1000);
+        const classMultiplier = cls === 'Business' ? 2.7 : cls === 'First' ? 3.8 : cls === 'Premium Economy' ? 1.4 : 1;
+        const price = Math.round(priceBase * classMultiplier / 100) * 100;
+        flights.push({
+          id: `FL-${Date.now().toString().slice(-5)}-${i}`,
+          carrier: carriers[i % carriers.length],
+          from, to,
+          depart: departTime.toISOString(),
+          duration: durationH*60 + (Math.floor(Math.random()*40)),
+          stops,
+          price,
+          cls,
+        });
+      }
+      return flights;
+    };
+
+    function minutesToString(m){
+      const h = Math.floor(m/60);
+      const mm = m%60;
+      return `${h}h ${mm}m`;
+    }
+    function formatDateTime(iso){
+      const d = new Date(iso);
+      return d.toLocaleString([], {dateStyle:'medium', timeStyle:'short'});
+    }
+
+    // DOM refs
+    const searchBtn = document.getElementById('search-btn');
+    const fromInput = document.getElementById('from');
+    const toInput = document.getElementById('to');
+    const departInput = document.getElementById('depart');
+    const returnInput = document.getElementById('return');
+    const clsInput = document.getElementById('cls');
+    const passengersInput = document.getElementById('passengers');
+    const budgetInput = document.getElementById('budget');
+    const flightList = document.getElementById('flight-list');
+    const resultCount = document.getElementById('result-count');
+    const emptyEl = document.getElementById('empty');
+    const modal = document.getElementById('modal');
+    const modalBody = document.getElementById('modal-body');
+    const modalClose = document.getElementById('modal-close');
+    const confirmBook = document.getElementById('confirm-book');
+    const swapBtn = document.getElementById('swap-btn');
+    const sortSelect = document.getElementById('sort');
+
+    let currentResults = [];
+    let selectedFlight = null;
+
+    swapBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      const t = fromInput.value;
+      fromInput.value = toInput.value;
+      toInput.value = t;
+    });
+
+    searchBtn.addEventListener('click', (e)=>{
+      e.preventDefault();
+      performSearch();
+    });
+
+    sortSelect.addEventListener('change', ()=>renderResults());
+
+    function performSearch(){
+      const from = fromInput.value.trim();
+      const to = toInput.value.trim();
+      const depart = departInput.value;
+      const cls = clsInput.value;
+      if(!from || !to || !depart){
+        alert('Please enter origin, destination and depart date.');
+        return;
+      }
+
+      currentResults = mockFlights(from,to,depart,cls);
+
+      const budget = Number(budgetInput.value) || Infinity;
+      if(budget !== Infinity){
+        currentResults = currentResults.filter(f=>f.price <= budget);
+      }
+
+      emptyEl.style.display = 'none';
+      renderResults();
+    }
+
+    function renderResults(){
+      flightList.innerHTML = '';
+      if(currentResults.length === 0){
+        resultCount.textContent = '0 results';
+        emptyEl.style.display = '';
+        return;
+      }
+
+      const sort = sortSelect.value;
+      let arr = [...currentResults];
+      if(sort === 'price-asc') arr.sort((a,b)=>a.price-b.price);
+      else if(sort === 'price-desc') arr.sort((a,b)=>b.price-a.price);
+      else if(sort === 'duration') arr.sort((a,b)=>a.duration-b.duration);
+      else arr.sort((a,b)=> (a.price / a.duration) - (b.price / b.duration));
+
+      resultCount.textContent = `${arr.length} results`;
+
+      arr.forEach(f=>{
+        const el = document.createElement('article');
+        el.className = 'flight-card';
+        el.innerHTML = `
+          <div class="flight-top">
+            <div>
+              <div class="route">${f.from} → ${f.to}</div>
+              <div class="meta">${f.carrier} • ${f.cls} • ${f.stops ? f.stops + ' stop(s)' : 'Non-stop'}</div>
+            </div>
+            <div class="price">₹${f.price.toLocaleString()}</div>
+          </div>
+          <div class="flight-body">
+            <div class="flight-left">
+              <div class="meta">Depart: ${formatDateTime(f.depart)}</div>
+              <div class="meta">Duration: ${minutesToString(f.duration)}</div>
+            </div>
+            <div class="flight-right">
+              <div class="badge">Seat availability: Good</div>
+              <div style="margin-top:8px"><button class="btn" data-flight-id="${f.id}">Select</button></div>
+            </div>
+          </div>
+        `;
+        flightList.appendChild(el);
+      });
+
+      flightList.querySelectorAll('button[data-flight-id]').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const id = btn.getAttribute('data-flight-id');
+          selectedFlight = arr.find(x=>x.id===id);
+          openBookingModal(selectedFlight);
+        });
+      });
+    }
+
+    function openBookingModal(flight){
+      modalBody.innerHTML = `
+        <div style="display:flex;justify-content:space-between;align-items:center">
+          <div>
+            <strong>${flight.carrier}</strong>
+            <div class="meta">${flight.from} → ${flight.to} • ${flight.cls}</div>
+          </div>
+          <div style="text-align:right">
+            <div class="price">₹${flight.price.toLocaleString()}</div>
+            <div class="meta">${minutesToString(flight.duration)}</div>
+          </div>
+        </div>
+
+        <hr style="border:0;border-top:1px solid rgba(255,255,255,0.03);margin:10px 0"/>
+
+        <form id="passenger-form">
+          <div class="grid-2">
+            <div>
+              <label for="pname">Passenger name</label>
+              <input id="pname" type="text" required />
+            </div>
+            <div>
+              <label for="pemail">Email</label>
+              <input id="pemail" type="text" required />
+            </div>
+          </div>
+          <div style="margin-top:8px">
+            <label for="pphone">Phone</label>
+            <input id="pphone" type="text" placeholder="+91-XXXXXXXXXX" required />
+          </div>
+          <div style="margin-top:10px;">
+            <label for="notes">Notes (optional)</label>
+            <input id="notes" type="text" />
+          </div>
+        </form>
+      `;
+
+      modal.style.display = 'flex';
+      modal.querySelector('.modal').classList.add('show');
+    }
+
+    modalClose.addEventListener('click', ()=>closeModal());
+    modal.addEventListener('click',(e)=>{ if(e.target === modal) closeModal(); });
+    function closeModal(){
+      modal.style.display = 'none';
+      modal.querySelector('.modal').classList.remove('show');
+      selectedFlight = null;
+    }
+
+    confirmBook.addEventListener('click', ()=>{
+      if(!selectedFlight) return;
+      const name = document.getElementById('pname')?.value?.trim();
+      const email = document.getElementById('pemail')?.value?.trim();
+      const phone = document.getElementById('pphone')?.value?.trim();
+      if(!name || !email || !phone){
+        alert('Please fill passenger name, email and phone.');
+        return;
+      }
+
+      const booking = {
+        id: 'BK-' + Date.now().toString().slice(-6),
+        flight: selectedFlight,
+        passenger: {name,email,phone,notes:document.getElementById('notes')?.value||''},
+        bookedAt: new Date().toISOString()
+      };
+
+      const saved = JSON.parse(localStorage.getItem('bookings') || '[]');
+      saved.push(booking);
+      localStorage.setItem('bookings', JSON.stringify(saved));
+
+      modalBody.innerHTML = `<div style="padding:8px;border-radius:8px;background:rgba(16,185,129,0.08);border:1px solid rgba(16,185,129,0.12);">
+        <strong>Booking confirmed</strong>
+        <div class="meta">Booking ID: ${booking.id}</div>
+        <div class="meta">Passenger: ${booking.passenger.name}</div>
+        <div class="meta">Paid: ₹${booking.flight.price.toLocaleString()}</div>
+        </div>`;
+      confirmBook.style.display = 'none';
+      modalClose.textContent = 'Close';
+
+      console.log('Booking saved (local only):', booking);
+    });
+
+    document.addEventListener('keydown', (e)=>{
+      if(e.key === 'Escape' && modal.style.display === 'flex') closeModal();
+    });
+
+    // prefill depart date to tomorrow
+    (function setDefaultDate(){
+      const t = new Date();
+      t.setDate(t.getDate()+1);
+      departInput.value = t.toISOString().slice(0,10);
+    })();
+
+    document.getElementById('fastest-filter').addEventListener('click', ()=>{
+      sortSelect.value = 'duration'; renderResults();
+    });
+    document.getElementById('cheapest-filter').addEventListener('click', ()=>{
+      sortSelect.value = 'price-asc'; renderResults();
+    });
+
+    // expose a small debug helper in window for devs
+    window.__skysearch = {mockFlights, currentResults, performSearch};
+  </script>
+</body>
+</html>
